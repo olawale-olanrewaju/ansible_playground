@@ -92,7 +92,7 @@
     ansible.builtin.command:
       cmd: /opt/nexus/bin/nexus start
       
-- name: Verify Nexus is up and running
+- name: Verify Nexus is up and running # Nexus fails to start due to insufficient JVM memory. Will need a larger VM 
   hosts: terraformserver
   tasks:
   - name: Check with ps
