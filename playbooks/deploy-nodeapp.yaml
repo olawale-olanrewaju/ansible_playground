@@ -1,0 +1,58 @@
+---
+- name: Install node and npm
+  hosts: webserver
+  become: true
+  become_user: root
+
+  vars_files:
+    - project-vars
+
+  tasks:
+  - name: Update dnf repo and cache
+    ansible.builtin.dnf: 
+      update_cache: true
+      
+  - name: Install nodejs and npm
+    ansible.builtin.dnf:
+      name:
+      - nodejs
+      - npm
+      state: present
+
+# - name: Create new linux user for node app
+#   hosts: webserver
+#   tasks:
+#   - name: Create admin user
+#     ansible.builtin.user:
+#       name: nodejs
+#       comment: Node admin
+#       group: admin
+
+- name: Deploy nodejs app
+  hosts: webserver
+
+  vars_files:
+    - project-vars 
+  tasks:     
+  - name: Copy and unpack nodejs tar file
+    ansible.builtin.unarchive:
+      src: "{{local_file_path}}/nodejs-app-{{node_version}}.tgz"
+      dest: "{{user_home_dir}}"
+
+  - name: Install dependencies
+    community.general.npm:
+      path: "{{user_home_dir}}package"
+
+  - name: Start nodejs app
+    ansible.builtin.command: 
+      chdir: "{{user_home_dir}}package/app"
+      cmd: node server
+    async: 1000
+    poll: 0
+
+  - name: Ensure app is running
+    ansible.builtin.shell: ps aux | grep node
+    register: app_status
+
+  - ansible.builtin.debug: 
+      msg: "{{app_status.stdout_lines}}"
